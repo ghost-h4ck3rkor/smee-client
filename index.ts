@@ -65,7 +65,12 @@ class Client {
       headers[key] = data[key];
     });
 
+    // Don't forward the host header. As it causes issues with some servers
+    // See https://github.com/probot/smee-client/issues/295
+    // See https://github.com/probot/smee-client/issues/187
+    delete headers["host"];
     headers["content-length"] = Buffer.byteLength(body);
+    headers["content-type"] = "application/json";
 
     try {
       const response = await this.fetch(url.format(target), {
@@ -90,7 +95,9 @@ class Client {
   }
 
   start() {
-    const events = new EventSource(this.source);
+    const events = new EventSource(this.source, {
+      proxy: process.env.HTTP_PROXY || process.env.HTTPS_PROXY,
+    });
 
     // Reconnect immediately
     (events as any).reconnectInterval = 0; // This isn't a valid property of EventSource
